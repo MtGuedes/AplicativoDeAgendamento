@@ -3,6 +3,7 @@ import { StyleSheet, Text, View, TextInput, Button, Alert, Platform } from 'reac
 import React, { useState } from 'react';
 import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import * as FileSystem from 'expo-file-system'; // Importação do FileSystem
 
 export default function User() {
   const [name, setName] = useState('');
@@ -34,18 +35,40 @@ export default function User() {
     setTime(currentTime);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!name || !service || !date || !time) {
       Alert.alert('Erro', 'Preencha todos os campos');
       return;
     }
-    // Combina a data e a hora para exibir no formato desejado
     const combinedDateTime = new Date(date);
     combinedDateTime.setHours(time.getHours());
     combinedDateTime.setMinutes(time.getMinutes());
 
-    // Lógica para salvar os dados
-    Alert.alert('Agendamento', `Nome: ${name}\nServiço: ${service}\nData: ${date.toLocaleDateString()}\nHora: ${time.toLocaleTimeString()}`);
+    const agendamento = {
+      name,
+      service,
+      date: combinedDateTime.toLocaleDateString(),
+      time: combinedDateTime.toLocaleTimeString(),
+    };
+
+    try {
+      const fileUri = FileSystem.documentDirectory + 'agendamentos.json';
+      const fileInfo = await FileSystem.getInfoAsync(fileUri);
+
+      let agendamentos = [];
+      if (fileInfo.exists) {
+        const fileData = await FileSystem.readAsStringAsync(fileUri);
+        agendamentos = JSON.parse(fileData);
+      }
+
+      agendamentos.push(agendamento);
+
+      await FileSystem.writeAsStringAsync(fileUri, JSON.stringify(agendamentos));
+      Alert.alert('Sucesso', 'Agendamento salvo com sucesso!');
+    } catch (error) {
+      Alert.alert('Erro', 'Falha ao salvar agendamento.');
+      console.error(error);
+    }
   };
 
   return (
