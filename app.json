@@ -19,13 +19,23 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.matheusdossantosguedes.meuProjeto",
+      "versionCode": 1.1,  // Incrementar para cada nova versão
+      "permissions": ["INTERNET"],  // Permissões necessárias
+      "minSdkVersion": 21,  // Mínimo recomendado
+      "targetSdkVersion": 31  // Atualizado para a versão mais recente
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-router"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "3a6bc42e-eeda-4462-9df4-9a16561ff350"
+      }
+    }
   }
 }

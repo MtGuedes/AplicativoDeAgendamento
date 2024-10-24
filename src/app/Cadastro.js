@@ -64,7 +64,6 @@ export default function Cadastro() {
         onChangeText={setPassword}
       />
       <Button title="Cadastrar" onPress={handleRegister} />
-      <Link href="/user/id" style={styles.link}>Ir para tela de Usuario</Link>
       <StatusBar style="auto" />
     </View>
   );

@@ -55,7 +55,7 @@ export default function Home() {
         onChangeText={setPassword}
       />
       <Button title="Entrar" onPress={handleLogin} />
-      <Link href="/Cadastro" style={styles.link}>Acessar Cadastro</Link>
+      <Link href="/Cadastro" style={styles.link}>Cadastrar</Link>
       <StatusBar style="auto" />
     </View>
   );
