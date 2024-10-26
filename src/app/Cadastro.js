@@ -63,7 +63,8 @@ export default function Cadastro() {
         value={password}
         onChangeText={setPassword}
       />
-      <Button title="Cadastrar" onPress={handleRegister} />
+      <Button title="Cadastrar" color="#FF69B4" onPress={handleRegister} />
+      <Link href="/" style={styles.link}>Voltar para Login</Link>
       <StatusBar style="auto" />
     </View>
   );
@@ -72,7 +73,7 @@ export default function Cadastro() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#f7f9fc', // Cor de fundo mais clara
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
@@ -80,17 +81,20 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     marginBottom: 20,
+    color: '#FF69B4', // Cor do texto do título
+    fontWeight: 'bold', // Texto em negrito
   },
   input: {
     width: '100%',
     padding: 10,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: '#FF69B4', // Borda rosa
     borderRadius: 5,
+    backgroundColor: '#fff', // Fundo do campo de entrada
   },
   link: {
     marginTop: 20,
-    color: '#007BFF',
+    color: '#FF69B4', // Cor do link
   },
 });

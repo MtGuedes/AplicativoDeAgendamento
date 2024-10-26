@@ -21,7 +21,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.matheusdossantosguedes.meuProjeto",
-      "versionCode": 1.1,  // Incrementar para cada nova versão
+      "versionCode": 1,  // Incrementar para cada nova versão
       "permissions": ["INTERNET"],  // Permissões necessárias
       "minSdkVersion": 21,  // Mínimo recomendado
       "targetSdkVersion": 31  // Atualizado para a versão mais recente

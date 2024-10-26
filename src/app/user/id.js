@@ -1,13 +1,15 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, TextInput, Button, Alert, Platform, FlatList } from 'react-native';
-import React, { useState } from 'react';
+import { StyleSheet, Text, View, TextInput, Button, Alert, Platform, FlatList, KeyboardAvoidingView } from 'react-native';
+import React, { useState, useEffect } from 'react';
 import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as FileSystem from 'expo-file-system';
+import * as Notifications from 'expo-notifications'; // Importando expo-notifications
+import NavigationBar from '../NavigationBar'; // Importa a barra de navegação
 
 export default function User() {
   const [name, setName] = useState('');
-  const [service, setService] = useState('Pé'); // Valor padrão
+  const [service, setService] = useState('Pé');
   const [date, setDate] = useState(new Date());
   const [time, setTime] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -16,8 +18,23 @@ export default function User() {
   const [appointments, setAppointments] = useState([]);
   const [filteredAppointments, setFilteredAppointments] = useState([]);
 
+  // Função para solicitar permissões de notificação
+  const registerForPushNotifications = async () => {
+    const { status } = await Notifications.getPermissionsAsync();
+    if (status !== 'granted') {
+      const { status: newStatus } = await Notifications.requestPermissionsAsync();
+      if (newStatus !== 'granted') {
+        Alert.alert('Erro', 'Você precisa permitir notificações para usar este recurso.');
+      }
+    }
+  };
+
+  useEffect(() => {
+    registerForPushNotifications();
+  }, []);
+
   const handleDateChange = (event, selectedDate) => {
-    if (event.type === "dismissed" || event.nativeEvent.type === "dismissed") {
+    if (event.type === "dismissed") {
       setShowDatePicker(false);
       return;
     }
@@ -27,7 +44,7 @@ export default function User() {
   };
 
   const handleTimeChange = (event, selectedTime) => {
-    if (event.type === "dismissed" || event.nativeEvent.type === "dismissed") {
+    if (event.type === "dismissed") {
       setShowTimePicker(false);
       return;
     }
@@ -41,11 +58,15 @@ export default function User() {
       Alert.alert('Erro', 'Preencha todos os campos');
       return;
     }
+
     const combinedDateTime = new Date(date);
     combinedDateTime.setHours(time.getHours());
     combinedDateTime.setMinutes(time.getMinutes());
 
+    const appointmentKey = combinedDateTime.toISOString(); // Chave única combinando data e hora
+
     const appointment = {
+      key: appointmentKey, // Usar key como a chave primária
       name,
       service,
       date: combinedDateTime.toLocaleDateString(),
@@ -60,14 +81,34 @@ export default function User() {
       if (fileInfo.exists) {
         const fileData = await FileSystem.readAsStringAsync(fileUri);
         appointments = JSON.parse(fileData);
+        
+        // Verificar se o agendamento já existe
+        const existingAppointment = appointments.find(appointment => appointment.key === appointmentKey);
+        if (existingAppointment) {
+          Alert.alert('Erro', 'Já existe um agendamento para esta data e hora.');
+          return;
+        }
       }
 
       appointments.push(appointment);
-
       await FileSystem.writeAsStringAsync(fileUri, JSON.stringify(appointments));
+
+      // Agendar a notificação para 10 minutos antes do agendamento
+      const notificationTime = new Date(combinedDateTime);
+      notificationTime.setMinutes(notificationTime.getMinutes() - 10);
+
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: "Lembrete de Agendamento",
+          body: `Faltam 10 minutos para atender ${name}.`,
+          sound: null,
+        },
+        trigger: notificationTime,
+      });
+
       Alert.alert('Sucesso', 'Agendamento salvo com sucesso!');
-      setName(''); // Limpar o campo após salvar
-      setFilteredAppointments([]); // Limpar resultados de busca
+      setName('');
+      setFilteredAppointments([]);
     } catch (error) {
       Alert.alert('Erro', 'Falha ao salvar agendamento.');
       console.error(error);
@@ -87,8 +128,6 @@ export default function User() {
       if (fileInfo.exists) {
         const fileData = await FileSystem.readAsStringAsync(fileUri);
         const appointments = JSON.parse(fileData);
-
-        // Filtrar agendamentos com base no nome
         const filtered = appointments.filter(appointment => appointment.name.toLowerCase().includes(searchName.toLowerCase()));
         setFilteredAppointments(filtered);
       } else {
@@ -101,9 +140,8 @@ export default function User() {
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <Text style={styles.title}>Formulário de Agendamento</Text>
-
       <TextInput
         style={styles.input}
         placeholder="Nome do Cliente"
@@ -123,7 +161,7 @@ export default function User() {
       </Picker>
 
       <Text style={styles.label}>Data</Text>
-      <Button title="Selecionar Data" onPress={() => setShowDatePicker(true)} />
+      <Button title="Selecionar Data" color="#FF69B4" onPress={() => setShowDatePicker(true)} />
       {showDatePicker && (
         <DateTimePicker
           value={date}
@@ -134,7 +172,7 @@ export default function User() {
       )}
 
       <Text style={styles.label}>Hora</Text>
-      <Button title="Selecionar Hora" onPress={() => setShowTimePicker(true)} />
+      <Button title="Selecionar Hora" color="#FF69B4" onPress={() => setShowTimePicker(true)} />
       {showTimePicker && (
         <DateTimePicker
           value={time}
@@ -145,79 +183,66 @@ export default function User() {
       )}
 
       <View style={styles.buttonContainer}>
-        <Button title="Salvar Agendamento" onPress={handleSave} />
+        <Button title="Salvar Agendamento" color="#FF69B4" onPress={handleSave} />
       </View>
 
-      {/* Campo de busca */}
-      <TextInput
-        style={styles.input}
-        placeholder="Buscar Agendamento"
-        value={searchName}
-        onChangeText={setSearchName}
-      />
-      <Button title="Buscar" onPress={handleSearch} />
-
-      {/* Lista de agendamentos filtrados */}
-      <FlatList
-        data={filteredAppointments}
-        keyExtractor={(item, index) => index.toString()}
-        renderItem={({ item }) => (
-          <View style={styles.appointmentItem}>
-            <Text>{`Nome: ${item.name}`}</Text>
-            <Text>{`Serviço: ${item.service}`}</Text>
-            <Text>{`Data: ${item.date}`}</Text>
-            <Text>{`Hora: ${item.time}`}</Text>
-          </View>
-        )}
-      />
+      {/* Adicionando a barra de navegação no rodapé */}
+      <NavigationBar />
 
       <StatusBar style="auto" />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: '#f7f9fc', // Cor de fundo mais clara
     padding: 20,
+    paddingBottom: 10, // Espaçamento inferior para a barra de navegação
   },
   title: {
     fontSize: 24,
     marginBottom: 20,
+    marginTop: 70,
     textAlign: 'center',
+    color: '#FF69B4', // Cor do texto do título
+    fontWeight: 'bold', // Texto em negrito
   },
   input: {
     width: '100%',
     padding: 10,
-    marginBottom: 20,
+    marginBottom: 30,
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: '#FF69B4', // Borda rosa
     borderRadius: 5,
+    backgroundColor: '#fff', // Fundo do campo de entrada
   },
   label: {
     alignSelf: 'flex-start',
     marginBottom: 5,
     fontSize: 16,
-    marginTop: 10,
+    marginTop: 30,
+    color: '#FF69B4', // Cor do texto do rótulo
   },
   picker: {
-    width: '100%',
     height: 50,
+    width: '100%',
+    backgroundColor: '#fff',
     marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#FF69B4', // Borda rosa
+    borderRadius: 5, // Arredondar os cantos do Picker
   },
   buttonContainer: {
-    width: '100%',
-    marginTop: 20,
+    marginVertical: 50,
+    marginTop: 50,
   },
   appointmentItem: {
     padding: 10,
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: '#FF69B4', // Borda rosa
     borderRadius: 5,
-    marginVertical: 5,
-    width: '100%',
+    marginBottom: 10,
   },
 });
